@@ -43,7 +43,12 @@ type Server struct {
 	// Per-room message rate
 	roomMsgRate *ratelimit.Window
 
+	// Configurable (exported for testing)
+	JoinAgeGate   time.Duration // default 1 minute
+	CreateAgeGate time.Duration // default 5 minutes
+
 	// Connected agents: agent ID -> connection
+	mux   *http.ServeMux
 	mu    sync.RWMutex
 	conns map[string]*Conn
 }
@@ -67,8 +72,10 @@ func New(addr, dbPath string) (*Server, error) {
 	}
 
 	s := &Server{
-		addr:        addr,
-		rooms:       room.NewManager(10000, 100),
+		addr:          addr,
+		JoinAgeGate:   time.Minute,
+		CreateAgeGate: 5 * time.Minute,
+		rooms:         room.NewManager(10000, 100),
 		store:       st,
 		pow:         pow.New(),
 		nonces:      agent.NewNonceTracker(),
@@ -87,8 +94,19 @@ func New(addr, dbPath string) (*Server, error) {
 	mux.HandleFunc("/api/rooms/", s.handleAPIRoomMessages)
 	mux.HandleFunc("/health", s.handleHealth)
 
+	s.mux = mux
 	s.httpSrv = &http.Server{Addr: addr, Handler: mux}
 	return s, nil
+}
+
+// ServeHTTP implements http.Handler for testing.
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
+}
+
+// SetCreateRateLimit overrides the per-agent room create rate limit (for testing).
+func (s *Server) SetCreateRateLimit(limit int, window time.Duration) {
+	s.createRate = ratelimit.New(limit, window)
 }
 
 // Start starts the server.
@@ -292,16 +310,10 @@ func (s *Server) messageLoop(c *Conn) {
 }
 
 func (s *Server) handleRoomCreate(c *Conn, raw []byte) {
-	// Age gate: 5 minutes
-	if time.Since(c.connectedAt) < 5*time.Minute {
-		retryMs := (5*time.Minute - time.Since(c.connectedAt)).Milliseconds()
+	// Age gate
+	if time.Since(c.connectedAt) < s.CreateAgeGate {
+		retryMs := (s.CreateAgeGate - time.Since(c.connectedAt)).Milliseconds()
 		s.sendError(c, "TOO_NEW", "room.create requires connection age >= 5 minutes", retryMs)
-		return
-	}
-
-	// Per-agent rate
-	if ok, retryMs := s.createRate.Allow(c.agent.Profile.ID); !ok {
-		s.sendError(c, "RATE_LIMITED", "room create rate exceeded", retryMs)
 		return
 	}
 
@@ -323,7 +335,7 @@ func (s *Server) handleRoomCreate(c *Conn, raw []byte) {
 		return
 	}
 
-	// PoW required
+	// PoW required — issue challenge if no proof provided
 	if msg.Pow == nil {
 		challenge := s.pow.Issue(20)
 		s.sendJSON(c, PowChallenge{
@@ -337,6 +349,12 @@ func (s *Server) handleRoomCreate(c *Conn, raw []byte) {
 
 	if !s.pow.Verify(msg.Pow.Challenge, msg.Pow.Proof) {
 		s.sendError(c, "AUTH_FAILED", "invalid proof of work", 0)
+		return
+	}
+
+	// Per-agent rate (only counted after PoW passes)
+	if ok, retryMs := s.createRate.Allow(c.agent.Profile.ID); !ok {
+		s.sendError(c, "RATE_LIMITED", "room create rate exceeded", retryMs)
 		return
 	}
 
@@ -366,9 +384,9 @@ func (s *Server) handleRoomCreate(c *Conn, raw []byte) {
 }
 
 func (s *Server) handleRoomJoin(c *Conn, raw []byte) {
-	// Age gate: 1 minute
-	if time.Since(c.connectedAt) < time.Minute {
-		retryMs := (time.Minute - time.Since(c.connectedAt)).Milliseconds()
+	// Age gate
+	if time.Since(c.connectedAt) < s.JoinAgeGate {
+		retryMs := (s.JoinAgeGate - time.Since(c.connectedAt)).Milliseconds()
 		s.sendError(c, "TOO_NEW", "room.join requires connection age >= 1 minute", retryMs)
 		return
 	}
