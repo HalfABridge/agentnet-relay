@@ -2,6 +2,7 @@ package relay
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +13,12 @@ import (
 func (s *Server) handleAPIRooms(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if ok, _ := s.listRate.Allow("api:" + ip); !ok {
+		http.Error(w, "rate limited", http.StatusTooManyRequests)
 		return
 	}
 
@@ -33,6 +40,12 @@ func (s *Server) handleAPIRooms(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAPIRoomMessages(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if ok, _ := s.listRate.Allow("api:" + ip); !ok {
+		http.Error(w, "rate limited", http.StatusTooManyRequests)
 		return
 	}
 

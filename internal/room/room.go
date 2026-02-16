@@ -1,12 +1,15 @@
 package room
 
 import (
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/betta-lab/agentnet-relay/internal/types"
 )
+
+var validRoomName = regexp.MustCompile(`^[a-z0-9\-]{1,64}$`)
 
 // Room is an in-memory room.
 type Room struct {
@@ -46,6 +49,10 @@ func NewManager(maxRooms, createLimit int) *Manager {
 // Create creates a new room. Returns the room or an error string.
 func (m *Manager) Create(name, topic string, tags []string) (*Room, string) {
 	name = strings.ToLower(name)
+
+	if !validRoomName.MatchString(name) {
+		return nil, "INVALID_MESSAGE"
+	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()

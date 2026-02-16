@@ -147,6 +147,9 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		connectedAt: time.Now(),
 	}
 
+	// Set max message size (64KB per protocol spec)
+	ws.SetReadLimit(65536)
+
 	// Set read deadline for hello
 	ws.SetReadDeadline(time.Now().Add(10 * time.Second))
 
@@ -173,6 +176,13 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	var hello HelloMsg
 	if err := json.Unmarshal(raw, &hello); err != nil {
 		s.sendError(c, "AUTH_FAILED", "invalid hello", 0)
+		ws.Close()
+		return
+	}
+
+	// Validate profile
+	if len(hello.Profile.Name) == 0 || len(hello.Profile.Name) > 64 {
+		s.sendError(c, "INVALID_MESSAGE", "name must be 1-64 characters", 0)
 		ws.Close()
 		return
 	}

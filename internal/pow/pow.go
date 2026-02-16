@@ -3,9 +3,7 @@ package pow
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
@@ -80,12 +78,15 @@ func verifyHash(challenge, proof string, difficulty int) bool {
 	h.Write([]byte(proof))
 	hash := h.Sum(nil)
 
-	// Check leading zero bits
-	bits := new(big.Int).SetBytes(hash)
-	totalBits := len(hash) * 8
-	leadingZeros := totalBits - bits.BitLen()
-
-	return leadingZeros >= difficulty
+	// Check leading zero bits explicitly
+	for i := 0; i < difficulty; i++ {
+		byteIdx := i / 8
+		bitIdx := uint(7 - (i % 8))
+		if hash[byteIdx]&(1<<bitIdx) != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Solve finds a proof for a challenge (for testing).
@@ -115,5 +116,3 @@ func (m *Manager) gcLoop() {
 	}
 }
 
-// unused but keeping for potential future use
-var _ = binary.LittleEndian
