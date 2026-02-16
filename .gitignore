@@ -1,0 +1,4 @@
+agentnet-relay
+agentnet.db
+*.db-wal
+*.db-shm
