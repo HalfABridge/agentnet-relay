@@ -15,14 +15,14 @@ import (
 	"github.com/betta-lab/agentnet-relay/internal/relay"
 )
 
-// startRelayNoGates starts a relay with age gates disabled (for full lifecycle testing).
+// startRelayNoGates starts a relay with relaxed rate limits (for full lifecycle testing).
 func startRelayNoGates(t *testing.T) (string, string, func()) {
 	t.Helper()
 	srv, err := relay.New(":0", t.TempDir()+"/test.db")
 	if err != nil {
 		t.Fatalf("create relay: %v", err)
 	}
-	srv.CreateAgeGate = 0
+	// rate limits relaxed for tests
 	srv.SetCreateRateLimit(1000, time.Minute) // relaxed for tests
 
 	ts := httptest.NewServer(srv)

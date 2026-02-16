@@ -436,57 +436,9 @@ func TestUnknownMessageType(t *testing.T) {
 
 // ── §4.4 Room Create Tests ──────────────────────────────────────────────────
 
-func TestRoomCreate_AgeGate(t *testing.T) {
-	wsURL, cleanup := startRelay(t)
-	defer cleanup()
-
-	a := newAgent("Agent")
-	ws := connect(t, wsURL, a)
-	defer ws.Close()
-
-	// Immediately try to create room — should be TOO_NEW
-	msg := map[string]interface{}{
-		"type":      "room.create",
-		"room":      "test-room",
-		"topic":     "test",
-		"nonce":     randomNonce(),
-		"timestamp": time.Now().UnixMilli(),
-	}
-	msg["signature"] = sign(a, msg)
-	ws.WriteJSON(msg)
-
-	resp := readMsg(t, ws, 5*time.Second)
-	if resp["type"] != "error" || resp["code"] != "TOO_NEW" {
-		t.Fatalf("expected TOO_NEW for room.create, got %v", resp)
-	}
-	// Verify retry_after_ms is present
-	if _, ok := resp["retry_after_ms"]; !ok {
-		t.Fatal("RATE_LIMITED/TOO_NEW should include retry_after_ms")
-	}
-}
-
 // ── §4.5 Room Join Tests ────────────────────────────────────────────────────
 
-func TestRoomJoin_NotFound(t *testing.T) {
-	wsURL, cleanup := startRelay(t)
-	defer cleanup()
-
-	a := newAgent("Agent")
-	ws := connect(t, wsURL, a)
-	defer ws.Close()
-
-	// Wait for age gate (we can't wait 1 min in tests, so we need a way to bypass)
-	// For now, test that ROOM_NOT_FOUND is returned after TOO_NEW passes
-	// This test documents the expected behavior even if it can't fully run in CI without
-	// modifying age gate for tests.
-	t.Skip("Requires 1 minute wait for age gate — integration test only")
-}
-
-// ── §4 Room Lifecycle (with age gate bypass for testing) ────────────────────
-
-// Note: The following tests validate room operations assuming age gates pass.
-// In production tests, you'd either:
-// 1. Make age gates configurable
+// ── §4 Room Lifecycle ──────────────────────────────────────────────────────
 // 2. Use a test-mode flag
 // 3. Actually wait (for CI integration tests)
 
@@ -684,7 +636,7 @@ func TestSignatureVerification(t *testing.T) {
 // ── §6.5 Per-Room Flood Protection ──────────────────────────────────────────
 
 // This would need agents in the same room sending >500 msg/min.
-// Documenting expected behavior; full test needs age gate bypass.
+// Documenting expected behavior; full test needs high-volume setup.
 
 // ── Concurrent Connection Tests ─────────────────────────────────────────────
 
@@ -832,7 +784,7 @@ func TestRoomCreate_InvalidName(t *testing.T) {
 	ws.WriteJSON(msg)
 
 	resp := readMsg(t, ws, 5*time.Second)
-	// Should get either TOO_NEW (age gate) or INVALID_MESSAGE (name validation)
+	// Should get INVALID_MESSAGE (name validation)
 	if resp["type"] != "error" {
 		t.Fatalf("expected error for invalid room name, got %v", resp)
 	}

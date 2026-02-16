@@ -11,6 +11,11 @@ import (
 
 var validRoomName = regexp.MustCompile(`^[a-z0-9\-]{1,64}$`)
 
+// ValidName checks if a room name matches the allowed pattern.
+func ValidName(name string) bool {
+	return validRoomName.MatchString(name)
+}
+
 // Room is an in-memory room.
 type Room struct {
 	Name       string

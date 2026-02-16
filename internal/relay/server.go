@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,9 +44,6 @@ type Server struct {
 	// Per-room message rate
 	roomMsgRate *ratelimit.Window
 
-	// Configurable (exported for testing)
-	CreateAgeGate time.Duration // default 5 minutes
-
 	// Connected agents: agent ID -> connection
 	mux   *http.ServeMux
 	mu    sync.RWMutex
@@ -71,8 +69,7 @@ func New(addr, dbPath string) (*Server, error) {
 	}
 
 	s := &Server{
-		addr:          addr,
-		CreateAgeGate: 5 * time.Minute,
+		addr:  addr,
 		rooms:         room.NewManager(10000, 100),
 		store:       st,
 		pow:         pow.New(),
@@ -318,13 +315,6 @@ func (s *Server) messageLoop(c *Conn) {
 }
 
 func (s *Server) handleRoomCreate(c *Conn, raw []byte) {
-	// Age gate
-	if time.Since(c.connectedAt) < s.CreateAgeGate {
-		retryMs := (s.CreateAgeGate - time.Since(c.connectedAt)).Milliseconds()
-		s.sendError(c, "TOO_NEW", "room.create requires connection age >= 5 minutes", retryMs)
-		return
-	}
-
 	var msg RoomCreateMsg
 	if err := json.Unmarshal(raw, &msg); err != nil {
 		s.sendError(c, "INVALID_MESSAGE", "invalid room.create", 0)
@@ -340,6 +330,13 @@ func (s *Server) handleRoomCreate(c *Conn, raw []byte) {
 	// Nonce check
 	if !s.nonces.Check(c.agent.Profile.ID, msg.Nonce, msg.Timestamp) {
 		s.sendError(c, "AUTH_FAILED", "invalid nonce or timestamp", 0)
+		return
+	}
+
+	// Normalize and validate room name before issuing PoW challenge
+	msg.Room = strings.ToLower(msg.Room)
+	if !room.ValidName(msg.Room) {
+		s.sendError(c, "INVALID_MESSAGE", "invalid room name: must match [a-z0-9-]{1,64}", 0)
 		return
 	}
 
