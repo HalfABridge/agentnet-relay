@@ -467,29 +467,6 @@ func TestRoomCreate_AgeGate(t *testing.T) {
 
 // ── §4.5 Room Join Tests ────────────────────────────────────────────────────
 
-func TestRoomJoin_AgeGate(t *testing.T) {
-	wsURL, cleanup := startRelay(t)
-	defer cleanup()
-
-	a := newAgent("Agent")
-	ws := connect(t, wsURL, a)
-	defer ws.Close()
-
-	msg := map[string]interface{}{
-		"type":      "room.join",
-		"room":      "nonexistent",
-		"nonce":     randomNonce(),
-		"timestamp": time.Now().UnixMilli(),
-	}
-	msg["signature"] = sign(a, msg)
-	ws.WriteJSON(msg)
-
-	resp := readMsg(t, ws, 5*time.Second)
-	if resp["type"] != "error" || resp["code"] != "TOO_NEW" {
-		t.Fatalf("expected TOO_NEW for room.join, got %v", resp)
-	}
-}
-
 func TestRoomJoin_NotFound(t *testing.T) {
 	wsURL, cleanup := startRelay(t)
 	defer cleanup()

@@ -44,7 +44,6 @@ type Server struct {
 	roomMsgRate *ratelimit.Window
 
 	// Configurable (exported for testing)
-	JoinAgeGate   time.Duration // default 1 minute
 	CreateAgeGate time.Duration // default 5 minutes
 
 	// Connected agents: agent ID -> connection
@@ -73,7 +72,6 @@ func New(addr, dbPath string) (*Server, error) {
 
 	s := &Server{
 		addr:          addr,
-		JoinAgeGate:   time.Minute,
 		CreateAgeGate: 5 * time.Minute,
 		rooms:         room.NewManager(10000, 100),
 		store:       st,
@@ -394,13 +392,6 @@ func (s *Server) handleRoomCreate(c *Conn, raw []byte) {
 }
 
 func (s *Server) handleRoomJoin(c *Conn, raw []byte) {
-	// Age gate
-	if time.Since(c.connectedAt) < s.JoinAgeGate {
-		retryMs := (s.JoinAgeGate - time.Since(c.connectedAt)).Milliseconds()
-		s.sendError(c, "TOO_NEW", "room.join requires connection age >= 1 minute", retryMs)
-		return
-	}
-
 	if ok, retryMs := s.joinRate.Allow(c.agent.Profile.ID); !ok {
 		s.sendError(c, "RATE_LIMITED", "join rate exceeded", retryMs)
 		return

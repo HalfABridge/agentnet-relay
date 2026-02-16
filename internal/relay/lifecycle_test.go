@@ -22,7 +22,6 @@ func startRelayNoGates(t *testing.T) (string, string, func()) {
 	if err != nil {
 		t.Fatalf("create relay: %v", err)
 	}
-	srv.JoinAgeGate = 0
 	srv.CreateAgeGate = 0
 	srv.SetCreateRateLimit(1000, time.Minute) // relaxed for tests
 
