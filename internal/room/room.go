@@ -200,16 +200,16 @@ func (m *Manager) List(tags []string, matchAll bool, sort string, limit int) []R
 			r.mu.RUnlock()
 			continue
 		}
-		memberIDs := make([]string, 0, len(r.Members))
-		for id := range r.Members {
-			memberIDs = append(memberIDs, id)
+		members := make([]types.MemberInfo, 0, len(r.Members))
+		for _, a := range r.Members {
+			members = append(members, types.MemberInfo{ID: a.Profile.ID, Name: a.Profile.Name})
 		}
 		results = append(results, RoomSummary{
 			Name:       r.Name,
 			Topic:      r.Topic,
 			Tags:       r.Tags,
 			Agents:     len(r.Members),
-			AgentIDs:   memberIDs,
+			Members:    members,
 			LastActive: r.LastActive.UnixMilli(),
 		})
 		r.mu.RUnlock()
@@ -225,12 +225,12 @@ func (m *Manager) List(tags []string, matchAll bool, sort string, limit int) []R
 
 // RoomSummary is used for list responses.
 type RoomSummary struct {
-	Name       string   `json:"name"`
-	Topic      string   `json:"topic"`
-	Tags       []string `json:"tags"`
-	Agents     int      `json:"agents"`
-	AgentIDs   []string `json:"agent_ids"`
-	LastActive int64    `json:"last_active"`
+	Name       string             `json:"name"`
+	Topic      string             `json:"topic"`
+	Tags       []string           `json:"tags"`
+	Agents     int                `json:"agents"`
+	Members    []types.MemberInfo `json:"members"`
+	LastActive int64              `json:"last_active"`
 }
 
 // MembersExcept returns members of a room except the given agent.
