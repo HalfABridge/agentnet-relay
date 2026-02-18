@@ -159,9 +159,9 @@ func TestRateLimit_RESTAPI(t *testing.T) {
 	_, apiURL, cleanup := startRelayNoGates(t)
 	defer cleanup()
 
-	// Hit /api/rooms 31 times (shares list rate limit at 30/min)
+	// Hit /api/rooms 125 times (REST API rate limit is 120/min)
 	var rateLimited bool
-	for i := 0; i < 35; i++ {
+	for i := 0; i < 125; i++ {
 		resp, err := http.Get(apiURL + "/api/rooms")
 		if err != nil {
 			t.Fatal(err)

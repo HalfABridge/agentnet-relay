@@ -38,7 +38,8 @@ type Server struct {
 	msgRate    *ratelimit.Window // per-agent messages
 	joinRate   *ratelimit.Window // per-agent joins
 	createRate *ratelimit.Window // per-agent creates
-	listRate   *ratelimit.Window // per-agent list queries
+	listRate   *ratelimit.Window // per-agent list queries (WebSocket)
+	apiRate    *ratelimit.Window // per-IP REST API queries (dashboard)
 	ipBlocker  *ratelimit.IPBlocker
 
 	// Per-room message rate
@@ -78,6 +79,7 @@ func New(addr, dbPath string) (*Server, error) {
 		joinRate:    ratelimit.New(10, time.Minute),
 		createRate:  ratelimit.New(5, time.Minute),
 		listRate:    ratelimit.New(30, time.Minute),
+		apiRate:     ratelimit.New(120, time.Minute), // REST API (dashboard polling)
 		ipBlocker:   ratelimit.NewIPBlocker(),
 		roomMsgRate: ratelimit.New(500, time.Minute),
 		conns:       make(map[string]*Conn),

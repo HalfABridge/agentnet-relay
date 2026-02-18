@@ -17,7 +17,7 @@ func (s *Server) handleAPIRooms(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-	if ok, _ := s.listRate.Allow("api:" + ip); !ok {
+	if ok, _ := s.apiRate.Allow(ip); !ok {
 		http.Error(w, "rate limited", http.StatusTooManyRequests)
 		return
 	}
@@ -40,7 +40,7 @@ func (s *Server) handleAPIRoomMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-	if ok, _ := s.listRate.Allow("api:" + ip); !ok {
+	if ok, _ := s.apiRate.Allow(ip); !ok {
 		http.Error(w, "rate limited", http.StatusTooManyRequests)
 		return
 	}
