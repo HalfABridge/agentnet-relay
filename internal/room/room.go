@@ -200,11 +200,16 @@ func (m *Manager) List(tags []string, matchAll bool, sort string, limit int) []R
 			r.mu.RUnlock()
 			continue
 		}
+		memberIDs := make([]string, 0, len(r.Members))
+		for id := range r.Members {
+			memberIDs = append(memberIDs, id)
+		}
 		results = append(results, RoomSummary{
 			Name:       r.Name,
 			Topic:      r.Topic,
 			Tags:       r.Tags,
 			Agents:     len(r.Members),
+			AgentIDs:   memberIDs,
 			LastActive: r.LastActive.UnixMilli(),
 		})
 		r.mu.RUnlock()
@@ -224,6 +229,7 @@ type RoomSummary struct {
 	Topic      string   `json:"topic"`
 	Tags       []string `json:"tags"`
 	Agents     int      `json:"agents"`
+	AgentIDs   []string `json:"agent_ids"`
 	LastActive int64    `json:"last_active"`
 }
 

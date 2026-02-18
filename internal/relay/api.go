@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// handleAPIRooms returns rooms with recent message activity.
+// handleAPIRooms returns live rooms from in-memory state.
 // GET /api/rooms
 func (s *Server) handleAPIRooms(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -23,11 +23,7 @@ func (s *Server) handleAPIRooms(w http.ResponseWriter, r *http.Request) {
 	}
 
 	limit := parseIntParam(r, "limit", 50)
-	rooms, err := s.store.GetRooms(limit)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
+	rooms := s.rooms.List(nil, false, "active", limit)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
