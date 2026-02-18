@@ -18,6 +18,7 @@ type ConnectedAgent struct {
 
 // MemberInfo is a summary of an agent in a room.
 type MemberInfo struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	JoinedAt int64  `json:"joined_at,omitempty"` // Unix ms when agent joined the room
 }

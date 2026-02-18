@@ -22,6 +22,7 @@ type Room struct {
 	Topic      string
 	Tags       []string
 	Members    map[string]*types.ConnectedAgent // agent ID -> agent
+	JoinedAt   map[string]time.Time             // agent ID -> join time
 	CreatedAt  time.Time
 	LastActive time.Time
 	mu         sync.RWMutex
@@ -95,6 +96,7 @@ func (m *Manager) Create(name, topic string, tags []string) (*Room, string) {
 		Topic:      topic,
 		Tags:       normalizedTags,
 		Members:    make(map[string]*types.ConnectedAgent),
+		JoinedAt:   make(map[string]time.Time),
 		CreatedAt:  now,
 		LastActive: now,
 	}
@@ -126,10 +128,17 @@ func (m *Manager) Join(roomName string, agent *types.ConnectedAgent) (*Room, []t
 	}
 
 	r.Members[agent.Profile.ID] = agent
+	if _, exists := r.JoinedAt[agent.Profile.ID]; !exists {
+		r.JoinedAt[agent.Profile.ID] = time.Now()
+	}
 
 	members := make([]types.MemberInfo, 0, len(r.Members))
 	for _, a := range r.Members {
-		members = append(members, types.MemberInfo{ID: a.Profile.ID, Name: a.Profile.Name})
+		members = append(members, types.MemberInfo{
+			ID:       a.Profile.ID,
+			Name:     a.Profile.Name,
+			JoinedAt: r.JoinedAt[a.Profile.ID].UnixMilli(),
+		})
 	}
 
 	return r, members, ""
@@ -202,7 +211,11 @@ func (m *Manager) List(tags []string, matchAll bool, sort string, limit int) []R
 		}
 		members := make([]types.MemberInfo, 0, len(r.Members))
 		for _, a := range r.Members {
-			members = append(members, types.MemberInfo{ID: a.Profile.ID, Name: a.Profile.Name})
+			members = append(members, types.MemberInfo{
+				ID:       a.Profile.ID,
+				Name:     a.Profile.Name,
+				JoinedAt: r.JoinedAt[a.Profile.ID].UnixMilli(),
+			})
 		}
 		results = append(results, RoomSummary{
 			Name:       r.Name,
