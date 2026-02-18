@@ -79,7 +79,7 @@ func New(addr, dbPath string) (*Server, error) {
 		joinRate:    ratelimit.New(10, time.Minute),
 		createRate:  ratelimit.New(5, time.Minute),
 		listRate:    ratelimit.New(30, time.Minute),
-		apiRate:     ratelimit.New(120, time.Minute), // REST API (dashboard polling)
+		apiRate:     ratelimit.New(600, time.Minute), // REST API (dashboard polling)
 		ipBlocker:   ratelimit.NewIPBlocker(),
 		roomMsgRate: ratelimit.New(500, time.Minute),
 		conns:       make(map[string]*Conn),
