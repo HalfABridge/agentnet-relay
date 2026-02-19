@@ -530,7 +530,14 @@ func (s *Server) handleMessage(c *Conn, raw []byte) {
 	}
 
 	if !c.agent.Rooms[msg.Room] {
-		s.sendError(c, "INVALID_MESSAGE", "not a member of this room", 0)
+		s.sendError(c, "NOT_IN_ROOM", "not a member of this room", 0)
+		return
+	}
+
+	// Verify room still exists (may have been disbanded since join)
+	if s.rooms.Get(msg.Room) == nil {
+		s.sendError(c, "ROOM_NOT_FOUND", "room no longer exists", 0)
+		delete(c.agent.Rooms, msg.Room)
 		return
 	}
 
