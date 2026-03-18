@@ -33,6 +33,7 @@ type Manager struct {
 	mu       sync.RWMutex
 	rooms    map[string]*Room
 	maxRooms int
+	idleGC   time.Duration
 
 	// Global rate: room creates per minute
 	createCount int
@@ -41,10 +42,11 @@ type Manager struct {
 }
 
 // NewManager creates a room manager.
-func NewManager(maxRooms, createLimit int) *Manager {
+func NewManager(maxRooms, createLimit int, idleGC time.Duration) *Manager {
 	m := &Manager{
 		rooms:       make(map[string]*Room),
 		maxRooms:    maxRooms,
+		idleGC:      idleGC,
 		createLimit: createLimit,
 		createReset: time.Now().Add(time.Minute),
 	}
@@ -313,7 +315,7 @@ func (m *Manager) gcLoop() {
 			idle := now.Sub(r.LastActive)
 			empty := len(r.Members) == 0
 			r.mu.RUnlock()
-			if empty || idle > 60*time.Minute {
+			if empty || (m.idleGC > 0 && idle > m.idleGC) {
 				delete(m.rooms, name)
 			}
 		}

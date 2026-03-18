@@ -63,7 +63,7 @@ type Conn struct {
 }
 
 // New creates a new relay server.
-func New(addr, dbPath string) (*Server, error) {
+func New(addr, dbPath string, roomGCIdleAfter time.Duration) (*Server, error) {
 	st, err := store.New(dbPath)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func New(addr, dbPath string) (*Server, error) {
 
 	s := &Server{
 		addr:  addr,
-		rooms:         room.NewManager(10000, 100),
+		rooms:         room.NewManager(10000, 100, roomGCIdleAfter),
 		store:       st,
 		pow:         pow.New(),
 		nonces:      agent.NewNonceTracker(),

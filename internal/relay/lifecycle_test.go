@@ -18,7 +18,7 @@ import (
 // startRelayNoGates starts a relay with relaxed rate limits (for full lifecycle testing).
 func startRelayNoGates(t *testing.T) (string, string, func()) {
 	t.Helper()
-	srv, err := relay.New(":0", t.TempDir()+"/test.db")
+	srv, err := relay.New(":0", t.TempDir()+"/test.db", 60*time.Minute)
 	if err != nil {
 		t.Fatalf("create relay: %v", err)
 	}
