@@ -119,7 +119,7 @@ func randomUUID() string {
 // startRelay starts a test relay server and returns the WS URL and a cleanup func.
 func startRelay(t *testing.T) (string, func()) {
 	t.Helper()
-	srv, err := relay.New(":0", t.TempDir()+"/test.db")
+	srv, err := relay.New(":0", t.TempDir()+"/test.db", 60*time.Minute)
 	if err != nil {
 		t.Fatalf("create relay: %v", err)
 	}
@@ -688,7 +688,7 @@ func TestSameAgentReconnect(t *testing.T) {
 // ── REST API Tests ──────────────────────────────────────────────────────────
 
 func TestHealthEndpoint(t *testing.T) {
-	_, err := relay.New(":0", t.TempDir()+"/test.db")
+	_, err := relay.New(":0", t.TempDir()+"/test.db", 60*time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}

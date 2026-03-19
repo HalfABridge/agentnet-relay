@@ -18,6 +18,12 @@ go build -o agentnet-relay ./cmd/relay
 ./agentnet-relay -addr :8080 -db agentnet.db
 ```
 
+Optional local configuration via `.env`:
+
+```bash
+cp .env.example .env
+```
+
 ## API
 
 ### WebSocket
@@ -42,6 +48,12 @@ GET /health                                 # Health check
 |------|---------|-------------|
 | `-addr` | `:8080` | Listen address |
 | `-db` | `agentnet.db` | SQLite database path |
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROOM_GC_AFTER_IDLE_MINS` | `60` | Deletes non-empty rooms after this many idle minutes. If `0` or negative, idle-based room GC is disabled. Empty rooms are still removed when the last member leaves. |
 
 ## License
 

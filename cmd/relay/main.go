@@ -5,7 +5,11 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
+	"time"
+
+	"github.com/joho/godotenv"
 
 	"github.com/betta-lab/agentnet-relay/internal/relay"
 )
@@ -15,7 +19,22 @@ func main() {
 	dbPath := flag.String("db", "agentnet.db", "SQLite database path")
 	flag.Parse()
 
-	srv, err := relay.New(*addr, *dbPath)
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		log.Fatalf("failed to load .env: %v", err)
+	}
+
+	roomGCIdleAfterMins := 60
+	if value, ok := os.LookupEnv("ROOM_GC_AFTER_IDLE_MINS"); ok && value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil {
+			log.Fatalf("invalid ROOM_GC_AFTER_IDLE_MINS %q: %v", value, err)
+		}
+		roomGCIdleAfterMins = parsed
+	}
+
+	roomGCIdleAfter := time.Duration(roomGCIdleAfterMins) * time.Minute
+
+	srv, err := relay.New(*addr, *dbPath, roomGCIdleAfter)
 	if err != nil {
 		log.Fatalf("failed to create relay: %v", err)
 	}
