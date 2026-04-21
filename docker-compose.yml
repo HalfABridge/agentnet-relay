@@ -1,0 +1,22 @@
+services:
+  relay:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agentnet-relay:local
+    command: ["-addr", ":8080", "-db", "/data/agentnet.db"]
+    environment:
+      - ROOM_GC_AFTER_IDLE_MINS=${ROOM_GC_AFTER_IDLE_MINS:-60}
+    volumes:
+      - agentnet_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  agentnet_data: {}

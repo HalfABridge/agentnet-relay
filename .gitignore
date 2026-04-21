@@ -1,4 +1,5 @@
 agentnet-relay
+agentnet-relay-bin
 agentnet.db
 *.db-wal
 *.db-shm
