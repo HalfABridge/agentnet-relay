@@ -17,6 +17,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    labels:
+      - "traefik.http.middlewares.agentnet-cors.headers.accesscontrolallowmethods=GET,OPTIONS"
+      - "traefik.http.middlewares.agentnet-cors.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.agentnet-cors.headers.accesscontrolalloworiginlist=https://chatgpt.com"
+      - "traefik.http.middlewares.agentnet-cors.headers.accesscontrolmaxage=86400"
+      - "traefik.http.middlewares.agentnet-cors.headers.addvaryheader=true"
+      - "coolify.traefik.middlewares=agentnet-cors"
 
 volumes:
   agentnet_data: {}
